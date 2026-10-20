@@ -137,6 +137,9 @@ body[data-view=room] .navbtn,body.editing .navbtn,body.open .navbtn{display:none
 .t-device::after{content:'';position:absolute;right:7%;bottom:9%;width:5px;height:5px;border-radius:50%;background:#35d07f}
 .box:hover{filter:brightness(1.06);transform:translateY(-2px)}
 .box.dragsrc{opacity:.25}
+.dropprev{position:absolute;border:2px dashed var(--tape);background:rgba(44,88,232,.18);border-radius:3px;pointer-events:none;z-index:3}
+.dropprev.bad{border-color:var(--danger);background:rgba(198,55,44,.18)}
+.mvgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:6px 0}.mvgrid3 label{font-size:12px;color:var(--muted)}
 .box.ghost{filter:drop-shadow(0 14px 14px rgba(0,0,0,.35));transform:scale(1.04);transition:none}
 .tag{position:absolute;left:8%;right:8%;top:40%;background:#fff;border-left:4px solid var(--tape);padding:2px 5px;font-family:ui-monospace,Menlo,Consolas,monospace;line-height:1.15;overflow:hidden;color:#10161a;border-radius:1px;pointer-events:none}
 .tag b,.tag small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -411,6 +414,7 @@ function repair(){
     u.rows.forEach(r=>{const tw=sum(r.cols.map(c=>c.w));if(Math.abs(tw-u.w)>.01)r.cols.forEach(c=>c.w*=u.w/tw)});
   });
   state.containers.forEach(c=>{const u=U(c.unit)||state.units[0];c.unit=u.id;const r=rowOf(u,c.rid)||u.rows[0];c.rid=r.id;if(!r.cols.some(x=>x.id===c.cid))c.cid=r.cols[0].id});
+  placeMissing();
 }
 function locParts(c){
   const u=U(c.unit),ri=rIdx(u,c.rid),r=u.rows[ri],ci=cIdx(r,c.cid);
@@ -431,7 +435,7 @@ function serialize(){
   return {version:2,room:state.room,
     units:state.units.map(u=>({id:u.id,name:u.name,side:u.side,w:u.w,h:u.h,d:u.d,x:u.x,y:u.y,rot:u.rot,color:u.color,
       layout:JSON.stringify({rows:u.rows.map(r=>({h:r.h,label:r.label||'',cols:r.cols.map(c=>c.w)}))})})),
-    containers:state.containers.map(c=>{const p=locParts(c);return {id:c.id,name:c.name,type:c.type,unit:c.unit,row:p.ri+1,col:p.ci+1,notes:c.notes,location:locText(c),items:c.items}})};
+    containers:state.containers.map(c=>{const p=locParts(c);return {id:c.id,name:c.name,type:c.type,unit:c.unit,row:p.ri+1,col:p.ci+1,notes:c.notes,location:locText(c),x:c.x==null?'':c.x,lv:c.lv||0,w:c.w||'',h:c.h||'',items:c.items}})};
 }
 function deserialize(d){
   if(!d||!Array.isArray(d.units)||!d.units.length)return null;
@@ -447,6 +451,7 @@ function deserialize(d){
     const u=units.find(x=>x.id===String(c.unit))||units[0];
     const r=u.rows[clamp((parseInt(c.row)||1)-1,0,u.rows.length-1)],cl=r.cols[clamp((parseInt(c.col)||1)-1,0,r.cols.length-1)];
     return {id:String(c.id||uid()),name:String(c.name||'Untitled'),type:TYPES[c.type]?c.type:'box',unit:u.id,rid:r.id,cid:cl.id,notes:String(c.notes||''),
+      x:(c.x===''||c.x==null||!Number.isFinite(+c.x))?null:+c.x,lv:parseInt(c.lv)||0,w:+c.w>0?+c.w:undefined,h:+c.h>0?+c.h:undefined,
       items:(c.items||[]).filter(i=>String(i.name||'').trim()).map(i=>({id:String(i.id||uid()),name:String(i.name),qty:(i.qty===''||i.qty==null)?1:(Number(i.qty)||0),notes:String(i.notes||'')}))};
   });
   const room=d.room&&+d.room.w>0&&+d.room.d>0?{w:+d.room.w,d:+d.room.d}:{w:216,d:168};
@@ -497,23 +502,91 @@ function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');c
 const mk=(tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e};
 
 /* ================= shelf rendering ================= */
+const BOARD=.9;
+const wOf=c=>c.w||TYPES[c.type].size[0], hOf=c=>c.h||TYPES[c.type].size[1];
+const r1=v=>Math.round(v*10)/10;
+/* gravity layout: every box has x (inches from the left of its spot) and lv (stack level). y is computed. */
+function layoutComp(list,W,H){
+  const items=list.map(c=>{const w=Math.min(wOf(c),W-.4),h=Math.min(hOf(c),Math.max(2,H-BOARD-.3));return {c,w,h,x:clamp(Number.isFinite(c.x)?c.x:0,0,Math.max(0,W-w)),lv:c.lv||0,y:0}});
+  items.sort((p,q)=>p.lv-q.lv||p.x-q.x);
+  const placed=[];
+  items.forEach(o=>{let y=0;placed.forEach(q=>{if(Math.min(o.x+o.w,q.x+q.w)-Math.max(o.x,q.x)>.25)y=Math.max(y,q.y+q.h)});o.y=y;placed.push(o)});
+  return items;
+}
 function packBoxes(list,W,H){
-  const n=list.length;if(!n)return [];
-  let best=null;const sz=c=>TYPES[c.type].size;
+  const n=list.length;if(!n)return {pl:[],s:1};
+  let best=null,one=null;
   for(let t=1;t<=Math.min(n,4);t++){
     const per=Math.ceil(n/t),tiers=[];for(let i=0;i<n;i+=per)tiers.push(list.slice(i,i+per));
-    const maxW=Math.max(...tiers.map(g=>sum(g.map(c=>sz(c)[0]))));
-    const maxH=Math.max(...list.map(c=>sz(c)[1]));
-    const s=Math.max(.15,Math.min(1,(W-1)/maxW,(H-1.4)/(tiers.length*maxH)));
-    if(!best||s>best.s+.001)best={s,tiers};
+    const maxW=Math.max(...tiers.map(g=>sum(g.map(wOf)))),maxH=Math.max(...list.map(hOf));
+    const sc=Math.max(.15,Math.min(1,(W-1)/maxW,(H-BOARD-.5)/(tiers.length*maxH)));
+    if(t===1)one={s:sc,tiers};
+    if(!best||sc>best.s+.001)best={s:sc,tiers};
   }
-  const out=[];let y=.9;
-  best.tiers.forEach(g=>{
-    const tw=sum(g.map(c=>sz(c)[0]))*best.s,gap=Math.max(0,(W-tw)/(g.length+1));let x=gap,th=0;
-    g.forEach(c=>{const w=sz(c)[0]*best.s,h=sz(c)[1]*best.s;out.push({c,x,y,w,h});x+=w+gap;th=Math.max(th,h)});
-    y+=th;
+  if(one&&one.s>=.65)best=one;   // prefer boxes side by side unless that makes them tiny
+  const pl=[];let y=0;
+  best.tiers.forEach((g,t)=>{
+    const tw=sum(g.map(wOf))*best.s,gap=Math.max(0,(W-tw)/(g.length+1));let x=gap,th=0;
+    g.forEach(c=>{const w=wOf(c)*best.s,h=hOf(c)*best.s;pl.push({c,x,y,w,h,t});x+=w+gap;th=Math.max(th,h)});y+=th;
   });
-  return out;
+  return {pl,s:best.s};
+}
+function applyPack(list,W,H){
+  const {pl,s:sc}=packBoxes(list,W,H);
+  pl.forEach(b=>{b.c.x=r1(b.x);b.c.lv=b.t;if(sc<.999){b.c.w=r1(b.w);b.c.h=r1(b.h)}});
+}
+function autoPlace(c,W,H,all){
+  let w=wOf(c),h=hOf(c);const mw=W-.4,mh=Math.max(2,H-BOARD-.3);
+  if(w>mw||h>mh){const k=Math.min(mw/w,mh/h);c.w=r1(w*k);c.h=r1(h*k);w=c.w;h=c.h}
+  const rest=all.filter(o=>o!==c&&o.x!=null),others=layoutComp(rest,W,H),floor=others.filter(o=>o.y<.01).sort((p,q)=>p.x-q.x);
+  let x=null,cur=0;
+  for(const o of floor){if(o.x-cur>=w+.4){x=cur+(cur>0?.4:.2);break}cur=Math.max(cur,o.x+o.w)}
+  if(x===null&&W-cur>=w+.4)x=cur+(cur>0?.4:.2);
+  if(x!==null){c.x=r1(Math.min(x,W-w));c.lv=0;return}
+  for(const o of others.slice().sort((p,q)=>(p.y+p.h)-(q.y+q.h))){
+    const xx=clamp(o.x,0,W-w),lv=(o.c.lv||0)+1,me={id:c.id,type:c.type,w:c.w,h:c.h,x:xx,lv};
+    const mine=layoutComp([...rest,me],W,H).find(i=>i.c===me);
+    if(mine&&mine.y+mine.h<=H-BOARD+.01){c.x=r1(xx);c.lv=lv;return}
+  }
+  c.x=0;c.lv=0;
+}
+function placeMissing(){
+  const groups={};
+  state.containers.forEach(c=>{if(c.x==null||!Number.isFinite(c.x))(groups[c.unit+'|'+c.rid+'|'+c.cid]=groups[c.unit+'|'+c.rid+'|'+c.cid]||[]).push(c)});
+  for(const key in groups){
+    const [uid_,rid,cid]=key.split('|'),u=U(uid_);if(!u)continue;const r=rowOf(u,rid),col=r&&r.cols.find(x=>x.id===cid);if(!col)continue;
+    const all=state.containers.filter(c=>c.unit===uid_&&c.rid===rid&&c.cid===cid);
+    if(groups[key].length===all.length)applyPack(all,col.w,r.h);else groups[key].forEach(c=>autoPlace(c,col.w,r.h,all));
+  }
+}
+function autoArrange(u,rid,cid){
+  const r=rowOf(u,rid),col=r.cols.find(x=>x.id===cid),list=state.containers.filter(c=>c.unit===u.id&&c.rid===rid&&c.cid===cid);
+  list.forEach(c=>{c.x=null;c.lv=0});applyPack(list,col.w,r.h);
+}
+/* where would a dragged box land? pure function, used for the live preview and the drop */
+function resolveDrop(p){
+  const {b,w,h,W,H,others,snap,thr}=p;let x=clamp(p.x,0,Math.max(0,W-w));const notes=[];
+  if(snap){
+    const cand=[[0,'the left edge'],[W-w,'the right edge']];
+    others.forEach(o=>cand.push([o.x+o.w,o.c.name],[o.x-w,o.c.name],[o.x,o.c.name],[o.x+o.w-w,o.c.name]));
+    let best=null,bd=thr;cand.forEach(([v,n])=>{if(v>=-.01&&v<=W-w+.01&&Math.abs(v-x)<bd){bd=Math.abs(v-x);best=[v,n]}});
+    if(best){x=clamp(best[0],0,Math.max(0,W-w));notes.push('Snapped to '+best[1])}else x=rnd(x);
+  }else x=Math.round(x*4)/4;
+  const ov=(o,xx)=>Math.min(xx+w,o.x+o.w)-Math.max(xx,o.x);
+  let over=others.filter(o=>ov(o,x)>.25),lv=0,stack=null;
+  const tryStack=()=>{
+    const sup=over.filter(o=>b>=o.y+o.h*.4).sort((m,n)=>(n.y+n.h)-(m.y+m.h))[0];if(!sup)return false;
+    const top=Math.max(...over.map(o=>o.y+o.h));if(top+h>H-BOARD+.01)return false;
+    lv=Math.max(...over.map(o=>o.lv))+1;stack=sup;return true;
+  };
+  if(over.length&&!tryStack()){
+    const cands=[0,W-w];others.forEach(o=>cands.push(o.x+o.w,o.x-w));
+    const free=cands.filter(v=>v>=-.01&&v<=W-w+.01).map(v=>clamp(v,0,Math.max(0,W-w))).filter(v=>!others.some(o=>ov(o,v)>.25)).sort((m,n)=>Math.abs(m-x)-Math.abs(n-x));
+    if(free.length){x=free[0];over=[];notes.push('Moved to the nearest free space')}
+    else return {x,lv:0,y:0,valid:true,reflow:true,notes:['Other boxes will be re-spaced to make room'],stack:null,w,h};
+  }
+  let y=0;others.forEach(o=>{if(ov(o,x)>.25)y=Math.max(y,o.y+o.h)});
+  return {x,lv,y,valid:y+h<=H-BOARD+.01,notes,stack,w,h};
 }
 function boxEl(c,b,k,opt){
   const el=mk('div',`box skin t-${c.type}`);el.dataset.id=c.id;el.title=`${c.name} · ${c.items.length} item${c.items.length===1?'':'s'}`;
@@ -533,7 +606,7 @@ function renderShelf(u,k,opt={}){
     r.cols.forEach((cl,ci)=>{
       const comp=mk('div','comp');comp.dataset.unit=u.id;comp.dataset.rid=r.id;comp.dataset.cid=cl.id;comp.style.cssText=`left:${x*k}px;width:${cl.w*k}px`;
       if(!opt.mini)comp.innerHTML=`<span class="cn">${r.cols.length>1?ci+1:''}</span>`+(opt.edit?`<span class="dim">${fmt(cl.w)} × ${fmt(r.h)} in</span>`:'');
-      if(!opt.edit)packBoxes(cm[r.id+'|'+cl.id]||[],cl.w,r.h).forEach(b=>comp.appendChild(boxEl(b.c,b,k,opt)));
+      if(!opt.edit)layoutComp(cm[r.id+'|'+cl.id]||[],cl.w,r.h).forEach(o=>comp.appendChild(boxEl(o.c,{x:o.x,y:BOARD+o.y,w:o.w,h:o.h},k,opt)));
       row.appendChild(comp);x+=cl.w;
     });
     if(!opt.mini)row.appendChild(mk('div','rl',`${r.label?`<span>${esc(r.label)}</span>`:''}<b>${ri+1}</b>`));
@@ -677,6 +750,15 @@ $('#bAddShelf').onclick=()=>{const R=state.room;addShelfAt(R.w/2-18,R.d/2-8)};
 /* ================= layout operations ================= */
 function colAtX(row,x){let a=0;for(const c of row.cols){if(x<a+c.w)return c;a+=c.w}return row.cols[row.cols.length-1]}
 function centerX(row,cid){let a=0;for(const c of row.cols){if(c.id===cid)return a+c.w/2;a+=c.w}return 0}
+const colLeft=(r,cid)=>{let a=0;for(const c of r.cols){if(c.id===cid)return a;a+=c.w}return 0};
+/* run a structural change but keep every box at the same physical spot on the shelf */
+function rebase(u,fn){
+  const abs=new Map();
+  state.containers.forEach(c=>{if(c.unit!==u.id||c.x==null)return;const r=rowOf(u,c.rid);if(r)abs.set(c.id,colLeft(r,c.cid)+c.x)});
+  const res=fn();
+  state.containers.forEach(c=>{if(c.unit!==u.id)return;if(!abs.has(c.id))return;const r=rowOf(u,c.rid);if(!r)return;c.x=r1(Math.max(0,abs.get(c.id)-colLeft(r,c.cid)))});
+  return res;
+}
 function splitRow(u,rid,where){
   const i=rIdx(u,rid),r=u.rows[i];if(r.h<10){toast('That row is too short to split (it needs at least 10 in).');return false}
   const h1=rnd(r.h/2),h2=r.h-h1,nr={id:uid(),h:0,label:'',cols:r.cols.map(c=>({id:uid(),w:c.w}))};
@@ -684,21 +766,29 @@ function splitRow(u,rid,where){
 }
 function splitCol(u,rid,cid){
   const r=rowOf(u,rid),j=cIdx(r,cid),c=r.cols[j];if(c.w<8){toast('That column is too narrow to split (needs at least 8 in).');return false}
-  const w1=rnd(c.w/2),w2=c.w-w1;c.w=w1;r.cols.splice(j+1,0,{id:uid(),w:w2});
+  return rebase(u,()=>{
+    const centers=state.containers.filter(x=>x.unit===u.id&&x.rid===rid&&x.cid===cid).map(x=>[x,colLeft(r,cid)+(x.x||0)+wOf(x)/2]);
+    const w1=rnd(c.w/2),w2=c.w-w1;c.w=w1;const nc={id:uid(),w:w2};r.cols.splice(j+1,0,nc);
+    centers.forEach(([x,cx])=>{x.cid=colAtX(r,cx).id});
+  });
 }
 function removeCol(u,rid,cid){
-  const r=rowOf(u,rid);if(r.cols.length<2)return false;const j=cIdx(r,cid),into=j>0?r.cols[j-1]:r.cols[1];
-  into.w+=r.cols[j].w;state.containers.forEach(c=>{if(c.unit===u.id&&c.rid===rid&&c.cid===cid)c.cid=into.id});r.cols.splice(j,1);
+  const r=rowOf(u,rid);if(r.cols.length<2)return false;
+  return rebase(u,()=>{const j=cIdx(r,cid),into=j>0?r.cols[j-1]:r.cols[1];
+    into.w+=r.cols[j].w;state.containers.forEach(c=>{if(c.unit===u.id&&c.rid===rid&&c.cid===cid)c.cid=into.id});r.cols.splice(j,1)});
 }
-function openRow(u,rid){const r=rowOf(u,rid),keep=r.cols[0];state.containers.forEach(c=>{if(c.unit===u.id&&c.rid===rid)c.cid=keep.id});r.cols=[{id:keep.id,w:u.w}]}
+function openRow(u,rid){rebase(u,()=>{const r=rowOf(u,rid),keep=r.cols[0];state.containers.forEach(c=>{if(c.unit===u.id&&c.rid===rid)c.cid=keep.id});r.cols=[{id:keep.id,w:u.w}]})}
 function splitRowInto(u,rid,n){
-  const r=rowOf(u,rid),centers=new Map();state.containers.forEach(c=>{if(c.unit===u.id&&c.rid===rid)centers.set(c.id,centerX(r,c.cid))});
-  const w=u.w/n;r.cols=Array.from({length:n},()=>({id:uid(),w}));
-  centers.forEach((cx,id)=>{C(id).cid=colAtX(r,cx).id});
+  rebase(u,()=>{
+    const r=rowOf(u,rid),centers=new Map();state.containers.forEach(c=>{if(c.unit===u.id&&c.rid===rid)centers.set(c.id,colLeft(r,c.cid)+(c.x||0)+wOf(c)/2)});
+    const w=u.w/n;r.cols=Array.from({length:n},()=>({id:uid(),w}));
+    centers.forEach((cx,id)=>{C(id).cid=colAtX(r,cx).id});
+  });
 }
 function removeRow(u,rid){
-  if(u.rows.length<2)return false;const i=rIdx(u,rid),r=u.rows[i],into=i>0?u.rows[i-1]:u.rows[1];into.h+=r.h;
-  state.containers.forEach(c=>{if(c.unit===u.id&&c.rid===rid){const cx=centerX(r,c.cid);c.rid=into.id;c.cid=colAtX(into,cx).id}});u.rows.splice(i,1);
+  if(u.rows.length<2)return false;
+  return rebase(u,()=>{const i=rIdx(u,rid),r=u.rows[i],into=i>0?u.rows[i-1]:u.rows[1];into.h+=r.h;
+    state.containers.forEach(c=>{if(c.unit===u.id&&c.rid===rid){const cx=colLeft(r,c.cid)+(c.x||0)+wOf(c)/2;c.rid=into.id;c.cid=colAtX(into,cx).id;c.lv=0}});u.rows.splice(i,1)});
 }
 function op(fn,msg){undoPush();const r=fn();if(r===false){undoStack.pop();return}repair();save();renderAll();if(msg)toast(msg)}
 function addShelfAt(x,y){
@@ -789,25 +879,45 @@ function startBoxDrag(e){
   const c=C(down.id),src=$(`.box[data-id="${c.id}"]`);if(!src)return;const r=src.getBoundingClientRect();
   const g=src.cloneNode(true);g.classList.add('ghost');Object.assign(g.style,{position:'fixed',left:r.left+'px',top:r.top+'px',bottom:'auto',width:r.width+'px',height:r.height+'px',zIndex:70,pointerEvents:'none'});
   document.body.appendChild(g);src.classList.add('dragsrc');
-  drag={type:'box',c,g,src,ox:e.clientX-r.left,oy:e.clientY-r.top,target:null};hidePop();moveDrag(e);
+  drag={type:'box',c,g,src,ox:e.clientX-r.left,oy:e.clientY-r.top,gh:r.height,drop:null};hidePop();moveDrag(e);
 }
+function clearPreview(){$$('.dropprev').forEach(x=>x.remove());$$('.comp.drop').forEach(x=>x.classList.remove('drop'))}
 function moveBoxDrag(e){
   const D=drag;D.g.style.left=e.clientX-D.ox+'px';D.g.style.top=e.clientY-D.oy+'px';
+  clearPreview();D.drop=null;
   const comp=document.elementsFromPoint?document.elementsFromPoint(e.clientX,e.clientY).find(el=>el.classList&&el.classList.contains('comp')&&el.closest('#carousel')):null;
-  $$('.comp.drop').forEach(x=>x.classList.remove('drop'));D.target=null;
-  if(comp){comp.classList.add('drop');D.target=comp.dataset;const u=U(comp.dataset.unit),r=rowOf(u,comp.dataset.rid),ri=rIdx(u,r.id),ci=cIdx(r,comp.dataset.cid);
-    showTip(e.clientX,e.clientY,`<b>${esc(D.c.name)}</b><br>${esc(u.name)} · ${esc(compLabel(u,r,ri,ci))}`)}else hideTip();
+  if(comp){
+    comp.classList.add('drop');
+    const u=U(comp.dataset.unit),r=rowOf(u,comp.dataset.rid),col=r.cols.find(c=>c.id===comp.dataset.cid),k=+comp.closest('.shelf').dataset.k,W=col.w,H=r.h,cr=comp.getBoundingClientRect(),c=D.c;
+    const w=Math.min(wOf(c),W-.4),h=Math.min(hOf(c),Math.max(2,H-BOARD-.3));
+    const others=layoutComp(state.containers.filter(o=>o!==c&&o.unit===u.id&&o.rid===r.id&&o.cid===col.id),W,H);
+    const res=resolveDrop({x:(e.clientX-D.ox-cr.left)/k,b:(cr.bottom-(e.clientY-D.oy+D.gh))/k-BOARD,w,h,W,H,others,snap:!e.altKey,thr:7/k});
+    D.drop={unit:u.id,rid:r.id,cid:col.id,x:res.x,lv:res.lv,valid:res.valid,reflow:!!res.reflow};
+    const pv=mk('div','dropprev'+(res.valid?'':' bad'));pv.style.cssText=`left:${res.x*k}px;bottom:${(BOARD+res.y)*k}px;width:${w*k}px;height:${h*k}px`;comp.appendChild(pv);
+    let gl=res.x,ln='the edge',gr=W-res.x-w,rn='the edge';
+    others.forEach(o=>{if(!(o.y<res.y+h-.01&&o.y+o.h>res.y+.01))return;
+      const re=o.x+o.w;if(re<=res.x+.01&&res.x-re<gl){gl=res.x-re;ln=o.c.name}
+      if(o.x>=res.x+w-.01&&o.x-(res.x+w)<gr){gr=o.x-(res.x+w);rn=o.c.name}});
+    showTip(e.clientX,e.clientY,res.reflow?`<b>${esc(c.name)}</b><br><em>${esc(res.notes[0])}</em>`:res.valid
+      ?`<b>${esc(c.name)}</b>${res.stack?`<br>On top of ${esc(res.stack.c.name)}`:''}<br>${fmt(gl)} in from ${esc(ln)} on the left<br>${fmt(gr)} in from ${esc(rn)} on the right${res.notes.length?`<br><em>${esc(res.notes.join(', '))}</em>`:''}<br><span style="opacity:.6">Hold Alt to turn snapping off</span>`
+      :`<b>${esc(c.name)}</b><br><em>No room here.</em> Try another spot, or drop it on top of a box.`);
+  }else hideTip();
   const now=performance.now();
   if(now>edgeT&&state.units.length>1&&(e.clientX<70||e.clientX>innerWidth-70)){edgeT=now+950;ui.cur=(ui.cur+(e.clientX<70?-1:1)+state.units.length)%state.units.length;positionSlides()}
 }
 function endBoxDrag(cancel){
-  const D=drag;D.g.remove();D.src.classList.remove('dragsrc');$$('.comp.drop').forEach(x=>x.classList.remove('drop'));hideTip();
-  if(D.target&&!cancel)moveContainer(D.c.id,D.target.unit,D.target.rid,D.target.cid);
+  const D=drag;D.g.remove();D.src.classList.remove('dragsrc');clearPreview();hideTip();
+  if(D.drop&&!cancel){if(D.drop.valid)moveContainer(D.c.id,D.drop.unit,D.drop.rid,D.drop.cid,{x:D.drop.x,lv:D.drop.lv,reflow:D.drop.reflow});else toast('No room there. Try another spot, or drop it on top of a box to stack it.')}
 }
-function moveContainer(id,unit,rid,cid){
-  const c=C(id);if(!c)return;undoPush();c.unit=unit;c.rid=rid;c.cid=cid;repair();save();
-  ui.cur=state.units.findIndex(u=>u.id===unit);ui.pulse=id;ui.pulseUntil=performance.now()+3500;renderAll();
-  const p=locParts(c);toast(`${c.name} is now in ${p.unit}, ${p.row.toLowerCase()}, ${p.col.toLowerCase()}`);
+function moveContainer(id,unit,rid,cid,pos){
+  const c=C(id);if(!c)return;undoPush();const moved=c.unit!==unit||c.rid!==rid||c.cid!==cid;
+  c.unit=unit;c.rid=rid;c.cid=cid;if(pos){c.x=r1(pos.x);c.lv=pos.lv}else{c.x=null;c.lv=0}
+  if(pos&&pos.reflow){
+    const u=U(unit),r=rowOf(u,rid),col=r.cols.find(x=>x.id===cid),W=col.w,H=r.h,mid=o=>(o.x||0)+Math.min(wOf(o),W-.4)/2;
+    const list=state.containers.filter(o=>o.unit===unit&&o.rid===rid&&o.cid===cid).sort((a,b)=>mid(a)-mid(b));applyPack(list,W,H);
+  }
+  repair();save();ui.cur=state.units.findIndex(u=>u.id===unit);ui.pulse=id;ui.pulseUntil=performance.now()+3500;renderAll();
+  const p=locParts(c);toast(moved?`${c.name} is now in ${p.unit}, ${p.row.toLowerCase()}, ${p.col.toLowerCase()}`:`${c.name} moved`);
 }
 
 /* --- shelf drag in room --- */
@@ -893,7 +1003,7 @@ function compMenu(u,rid,cid,box){
   const items=[];
   if(box){items.push({t:'Open “'+box.name.slice(0,24)+(box.name.length>24?'…':'')+'”',fn:()=>openBox(box.id)},{t:'Delete this box',fn:()=>deleteBox(box.id)},{sep:1})}
   items.push(editing?{t:'Done editing layout',fn:exitEdit}:{t:'Edit shelf layout',fn:()=>enterEdit(u.id)});
-  if(!editing)items.push({t:'Add box here…',fn:()=>addBoxModal({unit:u.id,rid,cid})});
+  if(!editing)items.push({t:'Add box here…',fn:()=>addBoxModal({unit:u.id,rid,cid})},{t:'Auto-arrange boxes here',fn:()=>op(()=>autoArrange(u,rid,cid),'Boxes spaced out evenly')});
   items.push({sep:1},
     {t:'Add row above',fn:()=>op(()=>splitRow(u,rid,'above'))},{t:'Add row below',fn:()=>op(()=>splitRow(u,rid,'below'))},
     {t:'Add column here',fn:()=>op(()=>splitCol(u,rid,cid))},
@@ -1004,6 +1114,9 @@ function renderPanel(){
   <div class="ph"><select id="pType" aria-label="Type">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${k===c.type?'selected':''}>${t.name}</option>`).join('')}</select><button class="x" data-act="close" aria-label="Close">×</button></div>
   <input id="pName" class="title" value="${esc(c.name)}" aria-label="Name">
   <section class="where">${miniMap(u,c)}<div><b>${esc(p.unit)}</b><span>${esc(p.side)}</span><span>${p.row} from top${p.label?` · ${esc(p.label)}`:''}</span><span>${p.col}${p.r.cols.length>1?' from left':''}</span></div></section>
+  <details class="mv"><summary>Size and position</summary>
+    <div class="mvgrid3"><div><label for="pW">Width (in)</label><input id="pW" type="number" step="0.5" min="1" value="${fmt(wOf(c))}"></div><div><label for="pH">Height (in)</label><input id="pH" type="number" step="0.5" min="1" value="${fmt(hOf(c))}"></div><div><label for="pX">From left (in)</label><input id="pX" type="number" step="0.5" min="0" value="${fmt(c.x||0)}"></div></div>
+    <p class="msg">Tip: drag a box along the shelf, or drop it on top of another box to stack it. Hold Alt to turn snapping off.</p><button data-act="resetSize">Reset size</button></details>
   <details class="mv"><summary>Move to another spot</summary>
     <div class="mvgrid"><div><label for="mvU">Shelf</label><select id="mvU">${state.units.map(x=>`<option value="${x.id}" ${x.id===u.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
     <div><label for="mvP">Spot</label><select id="mvP">${compOptions(u,c.rid,c.cid)}</select></div></div>
@@ -1026,8 +1139,9 @@ function addItems(c,list){list.forEach(([name,qty])=>c.items.push({id:uid(),name
 panel.addEventListener('change',e=>{
   const c=C(ui.open);if(!c)return;const t=e.target;
   if(t.id==='pName'){c.name=t.value.trim()||'Untitled';save();refreshBoxViews(c);updateCrumbs()}
-  else if(t.id==='pType'){c.type=t.value;save();const id=c.id,f=ui.focusItem;closeBoxNow();renderAll();setTimeout(()=>openBox(id,f),30)}
+  else if(t.id==='pType'){c.type=t.value;c.w=c.h=undefined;save();const id=c.id,f=ui.focusItem;closeBoxNow();renderAll();setTimeout(()=>openBox(id,f),30)}
   else if(t.id==='pNotes'){c.notes=t.value;save()}
+  else if(t.id==='pW'||t.id==='pH'||t.id==='pX'){const v=Number(t.value);if(t.id==='pW')c.w=Math.max(1,v||wOf(c));else if(t.id==='pH')c.h=Math.max(1,v||hOf(c));else c.x=Math.max(0,v||0);repair();save();refreshBoxViews(c);renderPanel()}
   else if(t.id==='mvU'){const u=U(t.value),r=u.rows[0];$('#mvP').innerHTML=compOptions(u,r.id,r.cols[0].id)}
   else if(t.dataset.f){const it=c.items.find(i=>i.id===t.closest('li').dataset.id);if(!it)return;
     if(t.dataset.f==='qty')it.qty=Math.max(0,Number(t.value)||0);else it[t.dataset.f]=t.value;
@@ -1042,6 +1156,7 @@ panel.addEventListener('click',e=>{
   else if(a==='bulk'){$('#bulkBox').hidden=!$('#bulkBox').hidden;$('#bulkText').focus()}
   else if(a==='bulkAdd'){const list=$('#bulkText').value.split('\n').map(s=>s.trim()).filter(Boolean).map(s=>{const m=s.match(/^(.*?)\s*[x×]\s*(\d+)$/i);return m&&m[1]?[m[1],+m[2]]:[s,1]});if(list.length)addItems(c,list)}
   else if(a==='move'){const [rid,cid]=$('#mvP').value.split('|');moveContainer(c.id,$('#mvU').value,rid,cid);renderPanel();updateCrumbs()}
+  else if(a==='resetSize'){c.w=c.h=undefined;save();refreshBoxViews(c);renderPanel()}
   else if(a==='delBox')deleteBox(c.id);
 });
 
