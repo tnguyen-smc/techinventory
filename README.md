@@ -1,4 +1,4 @@
-# Office tech inventory (2D carousel)
+# St. Mary IT: Tech Inventory (2D carousel)
 
 Three zoom levels, one file:
 
@@ -31,6 +31,11 @@ Boxes keep their spot when you split, merge or move lines. If you remove a row o
 - **Moving and spacing:** drag a box anywhere along its shelf spot. A dashed preview shows where it will land and a tip gives the gap to the left and right in inches. It snaps to the spot's edges and to neighbouring boxes (edges and tops). Hold **Alt** to turn snapping off and place it exactly (quarter-inch steps).
 - **Stacking:** drop a box on top of another and it sits on it, if it fits the height of that shelf row. Move the lower box away and the one above falls, like in real life. If the spot is full, the other boxes are re-spaced to make room.
 - **Real sizes:** open a box and use *Size and position* to set its width, height and distance from the left edge in inches. *Reset size* goes back to the default for its type, and right-click a spot > *Auto-arrange boxes here* spaces everything evenly.
+- **Rotating shelves:** in the room view each shelf has a ↻ button (always visible on touch screens). Click it to turn the shelf 90° clockwise around its centre. Hover a shelf and press **R** to rotate right or **Shift+R** to rotate left, or right-click the shelf. The blue bar on the plan marks the front of the shelf.
+- **Desks and odd-shaped shelves:** right-click a space on a shelf > *Remove this space (desk or odd shape)* to cut it out of the shape, or *Remove the whole row space*. For a desk, make a wide top row, split the row under it into columns, and remove the middle space for the knee gap. Any boxes in a removed space move to the floor in front. Removed spaces show as hatched areas in *Edit layout*, where right-clicking one gives *Restore this space*. The shape syncs to the sheet.
+- **Floor in front:** every shelf has a floor strip under it for things sitting on the floor in front of the shelf (it sticks out 12 in past each side). Drag any box onto it, or right-click the strip > *Add box on the floor here…*, or pick *Floor in front of the shelf* in the Add box and Move menus. Spacing, snapping and stacking work the same as on the shelves, and search shows "On the floor in front of the shelf". In the sheet these boxes have a `row` one past the shelf's last row.
+- **Editing a box:** changes save as you go (when you leave a field). The **Save** button at the bottom of the panel commits anything still being typed (including an item you haven't added yet), shows "All changes saved", and sends to the Google Sheet right away.
+- **Duplicate:** right-click a box > *Duplicate this box* (copies its items and size, and finds a free spot), or right-click an item in the list > *Duplicate item*.
 - Drag a box to another compartment, including onto a neighbouring shelf. Hold it near the screen edge to flip the carousel.
 - **Add box** is three taps: tap the spot on a picture of the shelf, pick the container type, then type a name (and optionally a list of what's inside). Right-click a compartment and choose "Add box here" to skip the first step.
 - Right-click the floor in the room view to add a shelf, or use the **Add shelf** button.
