@@ -21,7 +21,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);border-radius:8px;
 textarea{resize:vertical}
 
 /* header */
-header{position:fixed;z-index:30;top:10px;left:10px;right:10px;display:flex;gap:10px;align-items:center;pointer-events:none}
+header{position:fixed;z-index:30;top:10px;left:10px;right:10px;display:flex;justify-content:flex-end;gap:10px;align-items:center;pointer-events:none}
 header>*{pointer-events:auto}
 .brand{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-weight:700;display:flex;gap:8px;align-items:baseline;white-space:nowrap}
 .brand span{font-weight:500;color:var(--muted);font-size:13px}
@@ -38,24 +38,25 @@ header>*{pointer-events:auto}
 .hitrow .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .chip{display:inline-block;font-size:12px;padding:2px 7px;border-radius:5px;background:#e3e8e5}
 .chip.tape{background:var(--tape);color:#fff}
-.actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.actions{display:flex;gap:8px;align-items:center}
 #sync{display:flex;align-items:center;gap:7px;font-size:13px}
 #sync i{width:8px;height:8px;border-radius:50%;background:#9aa5a0;display:block}
 #sync.ok i{background:#2f9e5b}#sync.busy i{background:var(--mark)}#sync.err i{background:var(--danger)}
 
 /* breadcrumbs, dock, edit bar */
-#crumbs{position:fixed;z-index:20;top:62px;left:10px;display:flex;gap:4px;align-items:center;font-size:14px}
+#crumbs{position:fixed;z-index:20;top:62px;right:10px;display:flex;justify-content:flex-end;gap:4px;align-items:center;font-size:14px}
+@media(min-width:821px){body.open #crumbs{right:404px}}
 #crumbs button{height:30px;padding:0 10px;font-size:13.5px}
 #crumbs span{color:var(--muted)}#crumbs b{padding:0 6px}
-#dock{position:fixed;z-index:20;left:10px;right:10px;bottom:10px;display:flex;gap:6px;align-items:center;pointer-events:none}
+#dock{position:fixed;z-index:20;left:10px;right:10px;bottom:10px;display:flex;justify-content:flex-end;gap:6px;align-items:center;pointer-events:none}
 #dock>*{pointer-events:auto}
-#dock .chips{display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100% - 330px)}
+#dock .chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:0 1 auto;max-width:calc(100% - 380px)}
 #dock .chips button{height:34px;font-size:13px}
 #dock .chips button.cur{background:var(--ink);color:#fff;border-color:var(--ink)}
-#dock .hint{color:var(--muted);font-size:12.5px;margin-left:6px;max-width:340px;line-height:1.3}
-#dock .zoom{margin-left:auto;display:flex;gap:6px}
+#dock .hint{color:var(--muted);font-size:12.5px;margin-right:auto;flex:1 1 0;min-width:0;max-width:340px;line-height:1.3}
+#dock .zoom{display:flex;gap:6px}
 #dock .zoom button{height:36px;min-width:36px;padding:0 12px}
-#editbar{position:fixed;z-index:25;top:62px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;background:var(--ink);color:#fff;border-radius:10px;padding:8px 8px 8px 14px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100vw - 20px)}
+#editbar{position:fixed;z-index:25;top:62px;right:10px;display:flex;gap:10px;align-items:center;background:var(--ink);color:#fff;border-radius:10px;padding:8px 8px 8px 14px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100vw - 20px)}
 #editbar span{opacity:.8;font-size:13px}
 #ebName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
 #editbar button{height:32px;background:#2d3633;color:#fff;border-color:#46504c}
@@ -68,6 +69,7 @@ header>*{pointer-events:auto}
 #room.out{transform:scale(6.5);opacity:0;pointer-events:none}
 #carousel{top:92px;bottom:64px}
 #carousel.pre{transform:scale(.5);opacity:0;pointer-events:none}
+#carousel.pre .slide{pointer-events:none!important}
 #backdrop{position:absolute;z-index:5;inset:0;background:rgba(233,236,234,.82);opacity:0;pointer-events:none;transition:opacity .5s;backdrop-filter:blur(2px)}
 #backdrop.on{opacity:1;pointer-events:auto}
 
@@ -225,6 +227,8 @@ ul#items li button{height:32px;padding:0}
 #modal h2{margin:0 0 14px;font-size:20px}
 .f{display:grid;gap:4px;margin-bottom:10px}
 .f label{font-size:13px;color:var(--muted)}
+.f.chk label{display:flex;gap:10px;align-items:center;color:var(--ink);font-size:14.5px;padding:6px 0}
+.f.chk input{width:20px;min-height:0;height:20px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
 .msg{font-size:13.5px;color:var(--muted);margin:6px 0}
@@ -258,12 +262,12 @@ ul#items li button{height:32px;padding:0}
   #sync{height:40px;width:40px;padding:0;justify-content:center}
   #sync span{display:none}
   #sync i{width:12px;height:12px}
-  #crumbs{top:56px;left:8px;right:8px;overflow-x:auto;white-space:nowrap}
+  #crumbs{top:56px;left:8px;right:8px;overflow-x:auto;white-space:nowrap;justify-content:flex-end}
   #crumbs b{max-width:50vw;overflow:hidden;text-overflow:ellipsis}
   #room,#carousel{top:96px;bottom:104px}
   #dock{left:8px;right:8px;bottom:8px;flex-wrap:wrap;gap:6px}
   #dock .hint{display:none}
-  #dock .chips{order:1;flex-wrap:nowrap;overflow-x:auto;max-width:none;width:100%;padding-bottom:2px;scrollbar-width:none}
+  #dock .chips{order:1;flex-wrap:nowrap;overflow-x:auto;max-width:100%;width:auto;margin-left:auto;padding-bottom:2px;scrollbar-width:none}
   #dock .chips::-webkit-scrollbar{display:none}
   #dock .chips button{flex:none;height:36px}
   #dock .zoom{order:2;margin-left:0;width:100%;justify-content:flex-end}
@@ -299,8 +303,8 @@ ul#items li button{height:32px;padding:0}
   body.editing .cap{visibility:hidden}
   #room,#carousel{top:52px;bottom:56px}
   #dock{flex-wrap:nowrap}
-  #dock .chips{order:0;width:auto;flex:1;min-width:0;flex-wrap:nowrap;overflow-x:auto;max-width:none}
-  #dock .zoom{order:0;width:auto;margin-left:auto;flex:none}
+  #dock .chips{order:0;width:auto;flex:0 1 auto;margin-left:auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;max-width:none}
+  #dock .zoom{order:0;width:auto;flex:none}
   #dock .zoom button,#dock .chips button{height:36px}
   #editbar{top:56px;bottom:auto;left:auto;right:8px;transform:none;flex-direction:column;align-items:stretch;width:170px;gap:6px}
   #editbar button{width:100%}
@@ -325,7 +329,7 @@ ul#items li button{height:32px;padding:0}
     <div id="results" role="listbox"></div>
   </div>
   <div class="actions">
-    <button id="bAdd" class="primary">Add box</button>
+    <button id="bAdd" class="primary">Add shelf</button>
     <button id="sync"><i></i><span>Local only</span></button>
   </div>
 </header>
@@ -342,9 +346,9 @@ ul#items li button{height:32px;padding:0}
 <button id="next" class="navbtn" aria-label="Next shelf" hidden>›</button>
 
 <div id="dock">
-  <div class="chips" id="chips"></div>
   <span class="hint" id="hint"></span>
-  <div class="zoom"><button id="bAddShelf">Add shelf</button><button id="zRoom">Room</button><button id="zOut" aria-label="Zoom out">−</button><button id="zIn" aria-label="Zoom in">+</button></div>
+  <div class="chips" id="chips"></div>
+  <div class="zoom"><button id="zRoom">Room</button><button id="zOut" aria-label="Zoom out">−</button><button id="zIn" aria-label="Zoom in">+</button></div>
 </div>
 <div id="pop" hidden></div>
 <div id="dragtip" hidden></div>
@@ -411,7 +415,8 @@ function seedData(){
 let state=(()=>{try{const s=JSON.parse(localStorage.getItem(STORE));if(s&&s.units&&s.units.length&&s.units[0].rows)return s}catch(e){}return seedData()})();
 
 const U=id=>state.units.find(u=>u.id===id), C=id=>state.containers.find(c=>c.id===id);
-const FLOORH=26,FM=12;   // floor strip in front of a shelf: 26 in deep, sticks out 12 in past each side
+const FLOORH=26,FM=12;
+const hasFloor=u=>u.floor!==false;   // floor strip in front of a shelf: 26 in deep, sticks out 12 in past each side
 const floorRow=u=>({id:'floor',h:FLOORH,label:'Floor in front',isFloor:true,cols:[{id:'floor',w:u.w+2*FM}]});
 const rIdx=(u,rid)=>rid==='floor'?u.rows.length:u.rows.findIndex(r=>r.id===rid), cIdx=(r,cid)=>r.cols.findIndex(c=>c.id===cid);
 const rowOf=(u,rid)=>rid==='floor'?floorRow(u):u.rows.find(r=>r.id===rid);
@@ -421,6 +426,7 @@ function repair(){
     const th=sum(u.rows.map(r=>r.h));if(Math.abs(th-u.h)>.01)u.rows.forEach(r=>r.h*=u.h/th);
     u.rows.forEach(r=>{const tw=sum(r.cols.map(c=>c.w));if(Math.abs(tw-u.w)>.01)r.cols.forEach(c=>c.w*=u.w/tw)});
   });
+  state.containers.forEach(c=>{const u=U(c.unit);if(u&&c.rid==='floor'&&!hasFloor(u)){const r=[...u.rows].reverse().find(q=>q.cols.some(x=>!x.void))||u.rows[u.rows.length-1],col=r.cols.find(x=>!x.void)||r.cols[0];c.rid=r.id;c.cid=col.id;c.x=null;c.lv=0}});
   state.containers.forEach(c=>{const u=U(c.unit)||state.units[0];c.unit=u.id;const r=rowOf(u,c.rid)||u.rows[0];c.rid=r.id;if(!r.cols.some(x=>x.id===c.cid))c.cid=r.cols[0].id});
   state.containers.forEach(c=>{const u=U(c.unit),r=u&&rowOf(u,c.rid),col=r&&r.cols.find(x=>x.id===c.cid);if(col&&col.void){c.rid='floor';c.cid='floor';c.x=null;c.lv=0}});
   placeMissing();
@@ -432,7 +438,7 @@ function locParts(c){
 }
 const locText=c=>{const p=locParts(c);return p.floor?`${p.unit} | ${p.side} | ${p.row}`:`${p.unit} | ${p.side} | ${p.row} from top${p.label?` (${p.label})`:''} | ${p.col}${p.r.cols.length>1?' from left':''}`};
 const compLabel=(u,r,ri,ci)=>r.isFloor?'Floor in front of the shelf':`Row ${ri+1}${r.label?' · '+r.label:''} · ${r.cols.length>1?'Column '+(ci+1):'whole row'}`;
-const compOptions=(u,rid,cid)=>u.rows.map((r,ri)=>r.cols.map((cl,ci)=>cl.void?'':`<option value="${r.id}|${cl.id}" ${r.id===rid&&cl.id===cid?'selected':''}>${esc(compLabel(u,r,ri,ci))}</option>`).join('')).join('')+`<option value="floor|floor" ${rid==='floor'?'selected':''}>Floor in front of the shelf</option>`;
+const compOptions=(u,rid,cid)=>u.rows.map((r,ri)=>r.cols.map((cl,ci)=>cl.void?'':`<option value="${r.id}|${cl.id}" ${r.id===rid&&cl.id===cid?'selected':''}>${esc(compLabel(u,r,ri,ci))}</option>`).join('')).join('')+(hasFloor(u)?`<option value="floor|floor" ${rid==='floor'?'selected':''}>Floor in front of the shelf</option>`:'');
 const footprint=u=>(u.rot%180===0)?{w:u.w,h:u.d}:{w:u.d,h:u.w};
 
 /* undo */
@@ -443,7 +449,7 @@ function undoPop(){const s=undoStack.pop();if(!s){toast('Nothing to undo');retur
 /* sheet format */
 function serialize(){
   return {version:2,room:state.room,
-    units:state.units.map(u=>({id:u.id,name:u.name,side:u.side,w:u.w,h:u.h,d:u.d,x:u.x,y:u.y,rot:u.rot,color:u.color,
+    units:state.units.map(u=>({id:u.id,name:u.name,side:u.side,w:u.w,h:u.h,d:u.d,x:u.x,y:u.y,rot:u.rot,color:u.color,floor:hasFloor(u)?1:0,
       layout:JSON.stringify({rows:u.rows.map(r=>({h:r.h,label:r.label||'',cols:r.cols.map(c=>c.void?{w:c.w,void:1}:c.w)}))})})),
     containers:state.containers.map(c=>{const p=locParts(c);return {id:c.id,name:c.name,type:c.type,unit:c.unit,row:p.ri+1,col:p.ci+1,notes:c.notes,location:locText(c),x:c.x==null?'':c.x,lv:c.lv||0,w:c.w||'',h:c.h||'',items:c.items}})};
 }
@@ -453,7 +459,7 @@ function deserialize(d){
     let lay=u.layout;if(typeof lay==='string'){try{lay=JSON.parse(lay)}catch(e){lay=null}}
     const w=+u.w||36,h=+u.h||48;
     const rowsIn=lay&&Array.isArray(lay.rows)&&lay.rows.length?lay.rows:[{h,label:'',cols:[w]}];
-    const nu={id:String(u.id||uid()),name:String(u.name||'Shelf'),side:String(u.side||''),w,h,d:+u.d||16,x:+u.x||0,y:+u.y||0,rot:((+u.rot||0)%360+360)%360,color:String(u.color||'#9a8f80'),
+    const nu={id:String(u.id||uid()),name:String(u.name||'Shelf'),side:String(u.side||''),w,h,d:+u.d||16,x:+u.x||0,y:+u.y||0,rot:((+u.rot||0)%360+360)%360,color:String(u.color||'#9a8f80'),floor:!(u.floor===0||u.floor==='0'||u.floor===false||String(u.floor).toLowerCase()==='false'),
       rows:rowsIn.map(r=>({id:uid(),h:+r.h||12,label:String(r.label||''),cols:(Array.isArray(r.cols)&&r.cols.length?r.cols:[w]).map(cw=>(cw&&typeof cw==='object')?{id:uid(),w:+cw.w||10,void:!!cw.void}:{id:uid(),w:+cw||10})}))};
     return nu;
   });
@@ -632,8 +638,8 @@ function renderShelf(u,k,opt={}){
     if(!opt.mini)row.appendChild(mk('div','rl',`${r.label?`<span>${esc(r.label)}</span>`:''}<b>${ri+1}</b>`));
     el.appendChild(row);y+=r.h;
   });
-  el.style.marginBottom=`${(FLOORH+3)*k}px`;
-  if(!opt.edit){
+  el.style.marginBottom=hasFloor(u)?`${(FLOORH+3)*k}px`:'0px';
+  if(!opt.edit&&hasFloor(u)){
     const fr=floorRow(u),row=mk('div','row floor');row.dataset.rid='floor';row.style.cssText=`top:${(u.h+2.5)*k}px;height:${FLOORH*k}px;left:${-FM*k}px;right:${-FM*k}px`;
     const comp=mk('div','comp');comp.dataset.unit=u.id;comp.dataset.rid='floor';comp.dataset.cid='floor';comp.style.cssText=`left:0;width:${fr.cols[0].w*k}px;box-shadow:inset 0 -${BDp}px 0 var(--sc)`;
     if(!opt.mini)comp.innerHTML='<span class="fl">Floor in front</span>';
@@ -664,7 +670,7 @@ function capHtml(u){
 const insets=el=>{const cs=getComputedStyle(el);return {top:parseFloat(cs.top)||0,bottom:parseFloat(cs.bottom)||0}};
 function fitK(u){
   const W=innerWidth,sm=innerHeight<=520,{top,bottom}=insets(carEl),H=innerHeight-top-bottom-(sm?(document.body.classList.contains('editing')?8:56):W<=820?90:70);
-  return Math.min(16,(W*(W>820?.44:sm?.34:.7))/u.w,(H*.9)/(u.h+FLOORH+3));
+  return Math.min(16,(W*(W>820?.44:sm?.34:.7))/u.w,(H*.9)/(u.h+(hasFloor(u)?FLOORH+3:2)));
 }
 function renderCarousel(){
   state.units.forEach(u=>ui.ks[u.id]=fitK(u));
@@ -769,13 +775,12 @@ function updateDock(){
   const chips=$('#chips');chips.innerHTML='';
   state.units.forEach((u,i)=>{const b=mk('button',ui.view==='carousel'&&i===ui.cur?'cur':'');b.textContent=`${i+1}  ${u.name}`;b.onclick=async()=>{if(ui.open)await closeBox();if(ui.edit)await exitEdit();if(ui.view==='room')zoomIntoShelf(u.id);else{ui.cur=i;positionSlides()}};chips.appendChild(b)});
   $('#hint').textContent=ui.view==='room'?'Click a shelf to zoom in. Drag to rearrange. Use the ↻ button (or R) to rotate.':ui.edit?'':'Click a box to open it. Drag it to move it. Right-click a shelf to change its rows and columns.';
-  $('#bAddShelf').hidden=ui.view!=='room';
+  $('#bAdd').textContent=ui.view==='room'?'Add shelf':'Add box';
   $('#zIn').disabled=ui.view==='carousel'||!!ui.edit;$('#zOut').disabled=ui.view==='room';$('#zRoom').disabled=ui.view==='room';
   const nav=state.units.length>1&&ui.view==='carousel'&&!ui.edit&&!ui.open;$('#prev').hidden=$('#next').hidden=!nav;
   document.body.dataset.view=ui.view;
 }
 $('#zRoom').onclick=showRoom;$('#zOut').onclick=zoomOut;$('#zIn').onclick=()=>zoomIn(null);
-$('#bAddShelf').onclick=()=>{const R=state.room;addShelfAt(R.w/2-18,R.d/2-8)};
 
 /* ================= layout operations ================= */
 function colAtX(row,x){let a=0;for(const c of row.cols){if(x<a+c.w)return c;a+=c.w}return row.cols[row.cols.length-1]}
@@ -837,10 +842,18 @@ function removeRow(u,rid){
     state.containers.forEach(c=>{if(c.unit===u.id&&c.rid===rid){const cx=colLeft(r,c.cid)+(c.x||0)+wOf(c)/2;c.rid=into.id;c.cid=solidColAtX(into,cx).id;c.lv=0}});u.rows.splice(i,1)});
 }
 function op(fn,msg){undoPush();const r=fn();if(r===false){undoStack.pop();return}repair();save();renderAll();if(msg)toast(msg)}
+function freeSpot(w,d){
+  const R=state.room,fps=state.units.map(u=>({x:u.x,y:u.y,...footprint(u)})),cx=R.w/2-w/2,cy=R.d/2-d/2,cand=[];
+  for(let y=0;y<=R.d-d;y+=4)for(let x=0;x<=R.w-w;x+=4)cand.push([x,y,Math.hypot(x-cx,y-cy)]);
+  cand.sort((a,b)=>a[2]-b[2]);
+  const hit=(x,y)=>fps.some(f=>x<f.x+f.w+3&&x+w+3>f.x&&y<f.y+f.h+3&&y+d+3>f.y);
+  const f=cand.find(c=>!hit(c[0],c[1]));return f?[f[0],f[1]]:[clamp(cx,0,R.w-w),clamp(cy,0,R.d-d)];
+}
+function addShelfAuto(){const [x,y]=freeSpot(36,16);addShelfAt(x,y)}
 function addShelfAt(x,y){
   undoPush();const u=mkUnit(uid(),'New shelf','',36,48,16,0,0,0,'#9a8f80',[['',16,[36]],['',16,[36]],['',16,[36]]]);
-  const f=footprint(u);u.x=clamp(rnd(x),0,state.room.w-f.w);u.y=clamp(rnd(y),0,state.room.d-f.h);state.units.push(u);save();renderAll();
-  toast('Shelf added. Drag it into place, then right-click it to edit its rows and columns.');
+  const f=footprint(u);u.x=clamp(rnd(x),0,state.room.w-f.w);u.y=clamp(rnd(y),0,state.room.d-f.h);state.units.push(u);save();ui.pulse=u.id;ui.pulseUntil=performance.now()+3500;renderAll();
+  toast('Shelf added. Click it to open it, drag it into place, or right-click it to edit its rows and columns.');
 }
 function rotateShelf(u,dir=1){
   undoPush();const f=footprint(u),cx=u.x+f.w/2,cy=u.y+f.h/2;u.rot=(u.rot+90*dir+360)%360;const g=footprint(u);
@@ -1179,8 +1192,8 @@ async function deleteBox(id){
 const panel=$('#panel');
 function miniMap(u,c,small){
   const occ=new Set(state.containers.filter(x=>x.unit===u.id).map(x=>x.rid+'|'+x.cid));
-  const fl=`<div class="mr fl" style="flex:${FLOORH*.45}"><i style="flex:1" class="${c.rid==='floor'?'me':occ.has('floor|floor')?'occ':''}"></i></div>`;
-  return `<div class="mm ${small?'s':''}" style="aspect-ratio:${u.w}/${u.h+FLOORH*.45+3}" aria-hidden="true">${u.rows.map(r=>`<div class="mr" style="flex:${r.h}">${r.cols.map(cl=>`<i style="flex:${cl.w}" class="${r.id===c.rid&&cl.id===c.cid?'me':occ.has(r.id+'|'+cl.id)?'occ':''}"></i>`).join('')}</div>`).join('')}${fl}</div>`;
+  const fl=!hasFloor(u)?'':`<div class="mr fl" style="flex:${FLOORH*.45}"><i style="flex:1" class="${c.rid==='floor'?'me':occ.has('floor|floor')?'occ':''}"></i></div>`;
+  return `<div class="mm ${small?'s':''}" style="aspect-ratio:${u.w}/${u.h+(hasFloor(u)?FLOORH*.45+3:0)}" aria-hidden="true">${u.rows.map(r=>`<div class="mr" style="flex:${r.h}">${r.cols.map(cl=>`<i style="flex:${cl.w}" class="${r.id===c.rid&&cl.id===c.cid?'me':occ.has(r.id+'|'+cl.id)?'occ':''}"></i>`).join('')}</div>`).join('')}${fl}</div>`;
 }
 function renderPanel(){
   const c=C(ui.open);if(!c){panel.classList.remove('on');return}
@@ -1284,10 +1297,10 @@ function closeModal(){modalEl.classList.remove('on');modalEl.innerHTML=''}
 modalEl.addEventListener('pointerdown',e=>{if(e.target===modalEl)closeModal()});
 function askModal(title,fields,okText='Save'){
   return new Promise(res=>{
-    const s=modal(`<h2>${esc(title)}</h2>`+fields.map(f=>`<div class="f"><label>${esc(f.label)}</label><input data-k="${f.k}" type="${f.type||'text'}" value="${esc(f.value??'')}" ${f.attrs||''}></div>`).join('')+`<div class="btns"><button data-x>Cancel</button><button class="primary" data-ok>${okText}</button></div>`);
+    const s=modal(`<h2>${esc(title)}</h2>`+fields.map(f=>f.type==='checkbox'?`<div class="f chk"><label><input data-k="${f.k}" type="checkbox" ${f.value?'checked':''}> ${esc(f.label)}</label></div>`:`<div class="f"><label>${esc(f.label)}</label><input data-k="${f.k}" type="${f.type||'text'}" value="${esc(f.value??'')}" ${f.attrs||''}></div>`).join('')+`<div class="btns"><button data-x>Cancel</button><button class="primary" data-ok>${okText}</button></div>`);
     let done=false;const fin=v=>{if(done)return;done=true;closeModal();res(v)};
     $('[data-x]',s).onclick=()=>fin(null);
-    $('[data-ok]',s).onclick=()=>{const o={};$$('[data-k]',s).forEach(i=>{o[i.dataset.k]=i.type==='number'?Number(i.value):i.value});fin(o)};
+    $('[data-ok]',s).onclick=()=>{const o={};$$('[data-k]',s).forEach(i=>{o[i.dataset.k]=i.type==='checkbox'?i.checked:i.type==='number'?Number(i.value):i.value});fin(o)};
     s.addEventListener('keydown',e=>{if(e.key==='Enter')$('[data-ok]',s).click()});setTimeout(()=>$('input',s).focus(),30);
   });
 }
@@ -1339,9 +1352,10 @@ function addBoxModal(pre={}){
 }
 async function shelfModal(u){
   const v=await askModal('Shelf settings',[{k:'name',label:'Name',value:u.name},{k:'side',label:'Where in the room (shown in search results)',value:u.side},
-    {k:'w',label:'Width (in)',type:'number',value:u.w,attrs:'min="8" step="0.5"'},{k:'h',label:'Height (in)',type:'number',value:u.h,attrs:'min="8" step="0.5"'},{k:'d',label:'Depth (in)',type:'number',value:u.d,attrs:'min="4" step="0.5"'},{k:'color',label:'Frame color',type:'color',value:u.color}]);
+    {k:'w',label:'Width (in)',type:'number',value:u.w,attrs:'min="8" step="0.5"'},{k:'h',label:'Height (in)',type:'number',value:u.h,attrs:'min="8" step="0.5"'},{k:'d',label:'Depth (in)',type:'number',value:u.d,attrs:'min="4" step="0.5"'},{k:'color',label:'Frame color',type:'color',value:u.color},{k:'floor',label:'Show floor space in front of this shelf',type:'checkbox',value:hasFloor(u)}]);
   if(!v)return;
-  op(()=>{u.name=v.name.trim()||u.name;u.side=v.side.trim();u.d=Math.max(4,v.d||u.d);u.color=v.color;
+  if(!v.floor&&hasFloor(u)){const n=state.containers.filter(c=>c.unit===u.id&&c.rid==='floor').length;if(n&&!confirm(`${n} box${n===1?' is':'es are'} on the floor in front of this shelf. Move ${n===1?'it':'them'} onto the bottom row instead?`))return}
+  op(()=>{u.floor=!!v.floor;u.name=v.name.trim()||u.name;u.side=v.side.trim();u.d=Math.max(4,v.d||u.d);u.color=v.color;
     const nw=Math.max(8,v.w||u.w),nh=Math.max(8,v.h||u.h);u.w=nw;u.h=nh;const f=footprint(u);u.x=clamp(u.x,0,Math.max(0,state.room.w-f.w));u.y=clamp(u.y,0,Math.max(0,state.room.d-f.h))});
 }
 async function roomModal(){
@@ -1369,7 +1383,7 @@ function settingsModal(){
   $('#sFile',s).onchange=async e=>{try{const n=deserialize(JSON.parse(await e.target.files[0].text()));if(!n)throw 0;undoPush();state=n;save();closeModal();resetUi();renderAll();toast('Backup restored')}catch(x){toast('That file is not a valid backup')}};
   $('#sReset',s).onclick=()=>{if(confirm('Replace everything with the starter layout?')){undoPush();state=seedData();save();closeModal();resetUi();renderAll()}};
 }
-$('#bAdd').onclick=()=>addBoxModal();
+$('#bAdd').onclick=()=>{if(ui.view==='room')addShelfAuto();else addBoxModal()};
 $('#sync').onclick=()=>{if(!cfg().url)settingsModal();else if(localStorage.getItem(DIRTY)||$('#sync').classList.contains('err'))push();else settingsModal()};
 $('#sync').addEventListener('contextmenu',e=>{e.preventDefault();settingsModal()});
 $('.brand').addEventListener('dblclick',settingsModal);
